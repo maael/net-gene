@@ -1,8 +1,13 @@
 import Head from 'next/head'
-import {ping as pingFormatter, speedtest as speedtestFormatter} from './chartFormaters';
 import {Line} from 'react-chartjs-2';
 import format from 'date-fns/format';
+import startOfToday from 'date-fns/start_of_today';
+import isAfter from 'date-fns/is_after';
 import {isMobile} from 'react-device-detect';
+import {ping as pingFormatter, speedtest as speedtestFormatter} from './chartFormaters';
+import SpeedTestDetails from './components/SpeedTestDetails';
+import Button from './components/Button';
+import theme from './theme';
 
 const dateFormat = 'HH:mm [on] DD/MM';
 
@@ -16,7 +21,15 @@ export default class IndexPage extends React.Component {
   state = {
     loading: true,
     pings: [],
-    speedtests: []
+    speedtests: [],
+    pingRange: {
+      from: undefined,
+      to: undefined
+    },
+    speedtestRange: {
+      from: undefined,
+      to: undefined
+    },
   }
 
   componentDidMount() {
@@ -31,14 +44,28 @@ export default class IndexPage extends React.Component {
       this.setState({
         pings: pingFormatter(pings),
         speedtests: speedtestFormatter(speedtests),
+        originals: {
+          pings: pingFormatter(pings),
+          speedtests: speedtestFormatter(speedtests),
+        },
         loading: false
       })
     });
     setTimeout(this.getData, 60 * 1000);
   }
 
+  applyRange(range, data) {
+    return {...data, datasets: data.datasets.map((ds) => {
+      if (!range.from) return ds;
+      return ({
+        ...ds,
+        data: ds.data.filter(({x}) => isAfter(x, range.from))
+      });
+    })};
+  }
+
   render () {
-    const {loading} = this.state;
+    const {loading, pingRange, speedtestRange, originals} = this.state;
     const timeOptions = {
       scales: {
         xAxes: [{
@@ -98,8 +125,6 @@ export default class IndexPage extends React.Component {
       }
     };
 
-    const display = isMobile ? {display: 'block'} : {};
-
     return (
       <div>
         <Head>
@@ -117,32 +142,52 @@ export default class IndexPage extends React.Component {
             font-family: sans-serif;
           }
         `}</style>
-        <div style={{padding: 20, background: '#ffffff'}}>
+        <div style={{padding: theme.padding, background: theme.colors.block.default, position: 'relative'}}>
           <h2>Speed Tests
-          {
-            !loading && this.state.speedtests.datasets[0].data.slice(-1) ? (
-              <small style={{...display, fontWeight: 'normal', fontSize: '0.75em', marginTop: isMobile ? 10 : 0}}>
-                <span style={{...display, marginLeft: 5}}>{this.state.speedtests.datasets[0].label}: {this.state.speedtests.datasets[0].data.slice(-1)[0].y} Mbps</span>
-                <span style={{...display, marginLeft: 5}}>{this.state.speedtests.datasets[1].label}: {this.state.speedtests.datasets[1].data.slice(-1)[0].y} Mbps</span>
-              </small>
-            ) : 'Loading...'
-          }
+            <SpeedTestDetails loading={loading} speedtests={this.state.speedtests} isMobile={isMobile} />
+            <Button
+              color='#663399'
+              hoverColor='rgba(102,51,153, 0.8)'
+              onClick={() => {
+                this.setState({
+                  speedtestRange: {from: this.state.speedtestRange.from ? undefined : startOfToday()},
+                  speedtests: originals.speedtests
+                })
+              }}
+              active={this.state.speedtestRange.from}
+            >
+              {this.state.speedtestRange.from ? 'All time' : 'Today'}
+            </Button>
           </h2>
         </div>
         {loading ? 'Loading' : (
           <div style={{background: '#663399', padding: 20, color: '#ffffff'}}>
             <p><small>Last updated: {this.state.speedtests.datasets[0].data.slice(-1) && format(this.state.speedtests.datasets[0].data.slice(-1)[0].x, dateFormat)}</small></p>
-            <Line data={this.state.speedtests} options={{...timeOptions, ...MbpsLabelOptions}} height={isMobile ? undefined : 75} />
-            </div>
+            <Line data={this.applyRange(speedtestRange, this.state.speedtests)} options={{...timeOptions, ...MbpsLabelOptions}} height={isMobile ? undefined : 75} />
+          </div>
         )}
-        <div style={{padding: 20, background: '#ffffff'}}>
-          <h2>Ping Tests</h2>
+        <div style={{padding: theme.padding, background: theme.colors.block.default, position: 'relative'}}>
+          <h2>Ping Tests
+            <Button
+              color={colourMap['Google DNS']}
+              hoverColor='rgba(0,150,136, 0.8)'
+              onClick={() => {
+                this.setState({
+                  pingRange: {from: this.state.pingRange.from ? undefined : startOfToday()},
+                  pings: originals.pings
+                })
+              }}
+              active={this.state.pingRange.from}
+            >
+              {this.state.pingRange.from ? 'All time' : 'Today'}
+            </Button>
+          </h2>
         </div>
         {loading ? 'Loading' : this.state.pings.map(({label, data}) => (
           <div key={label} style={{padding: 20, background: colourMap[label], color: '#ffffff'}}>
           <h4>{label}</h4>
             <p><small>Last updated: {data.datasets[0].data.slice(-1) && format(data.datasets[0].data.slice(-1)[0].x, dateFormat)}</small></p>
-            <Line data={data} options={{...timeOptions, ...MsLabelOptions}} height={isMobile ? undefined : 75} />
+            <Line data={this.applyRange(pingRange, data)} options={{...timeOptions, ...MsLabelOptions}} height={isMobile ? undefined : 75} />
           </div>
         ))}
       </div>
