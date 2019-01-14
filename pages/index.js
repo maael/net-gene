@@ -159,8 +159,10 @@ export default class IndexPage extends React.Component {
           </h2>
         </div>
         {loading ? 'Loading' : (
-          <div style={{background: '#663399', padding: 20, color: '#ffffff'}}>
-            <p><small>Last updated: {this.state.speedtests.datasets[0].data.slice(-1) && format(this.state.speedtests.datasets[0].data.slice(-1)[0].x, dateFormat)}</small></p>
+          <div style={{background: '#663399', padding: theme.padding, color: '#ffffff', position: 'relative'}}>
+            <p style={{position: 'absolute', top: isMobile ? 5 : theme.padding, right: theme.padding}}>
+              <small>Last updated: {this.state.speedtests.datasets[0].data.slice(-1) && format(this.state.speedtests.datasets[0].data.slice(-1)[0].x, dateFormat)}</small>
+            </p>
             <Line data={this.applyRange(speedtestRange, this.state.speedtests)} options={{...timeOptions, ...MbpsLabelOptions}} height={isMobile ? undefined : 75} />
           </div>
         )}
@@ -181,9 +183,11 @@ export default class IndexPage extends React.Component {
           </h2>
         </div>
         {loading ? 'Loading' : this.state.pings.map(({label, data}) => (
-          <div key={label} style={{padding: 20, background: colourMap[label], color: '#ffffff'}}>
-          <h4>{label}</h4>
-            <p><small>Last updated: {data.datasets[0].data.slice(-1) && format(data.datasets[0].data.slice(-1)[0].x, dateFormat)}</small></p>
+          <div key={label} style={{padding: theme.padding, background: colourMap[label], color: '#ffffff', position: 'relative'}}>
+            <h4 style={isMobile ? {marginBottom: 10} : {}}>{label}</h4>
+            <p style={{position: 'absolute', top: theme.padding, right: theme.padding}}>
+              <small>Last updated: {data.datasets[0].data.slice(-1) && format(data.datasets[0].data.slice(-1)[0].x, dateFormat)}</small>
+            </p>
             <Line data={this.applyRange(pingRange, data)} options={{...timeOptions, ...MsLabelOptions}} height={isMobile ? undefined : 75} />
           </div>
         ))}
