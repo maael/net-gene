@@ -44,10 +44,6 @@ export default class IndexPage extends React.Component {
       this.setState({
         pings: pingFormatter(pings),
         speedtests: speedtestFormatter(speedtests),
-        originals: {
-          pings: pingFormatter(pings),
-          speedtests: speedtestFormatter(speedtests),
-        },
         loading: false
       })
     });
@@ -55,8 +51,10 @@ export default class IndexPage extends React.Component {
   }
 
   applyRange(range, data) {
-    return {...data, datasets: data.datasets.map((ds) => {
-      if (!range.from) return ds;
+    const clone = JSON.parse(JSON.stringify(data));
+    if (!range.from) return clone;
+
+    return {...clone, datasets: clone.datasets.map((ds) => {
       return ({
         ...ds,
         data: ds.data.filter(({x}) => isAfter(x, range.from))
@@ -65,7 +63,8 @@ export default class IndexPage extends React.Component {
   }
 
   render () {
-    const {loading, pingRange, speedtestRange, originals} = this.state;
+    const {loading, pingRange, speedtestRange} = this.state;
+
     const timeOptions = {
       scales: {
         xAxes: [{
@@ -150,13 +149,12 @@ export default class IndexPage extends React.Component {
               hoverColor='rgba(102,51,153, 0.8)'
               onClick={() => {
                 this.setState({
-                  speedtestRange: {from: this.state.speedtestRange.from ? undefined : startOfToday()},
-                  speedtests: originals.speedtests
+                  speedtestRange: {from: speedtestRange.from ? undefined : startOfToday()}
                 })
               }}
-              active={this.state.speedtestRange.from}
+              active={speedtestRange.from}
             >
-              {this.state.speedtestRange.from ? 'All time' : 'Today'}
+              {speedtestRange.from ? 'All time' : 'Today'}
             </Button>
           </h2>
         </div>
@@ -173,13 +171,12 @@ export default class IndexPage extends React.Component {
               hoverColor='rgba(0,150,136, 0.8)'
               onClick={() => {
                 this.setState({
-                  pingRange: {from: this.state.pingRange.from ? undefined : startOfToday()},
-                  pings: originals.pings
+                  pingRange: {from: pingRange.from ? undefined : startOfToday()}
                 })
               }}
-              active={this.state.pingRange.from}
+              active={pingRange.from}
             >
-              {this.state.pingRange.from ? 'All time' : 'Today'}
+              {pingRange.from ? 'All time' : 'Today'}
             </Button>
           </h2>
         </div>
